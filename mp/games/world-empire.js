@@ -37,7 +37,9 @@ import { makeMap, packTerrain, PLAINS, MAP_GEN } from "./we/map.js";
 import { FIRST_START, ZONE, nextStartAfterWin } from "./we/time.js";
 
 const ID = "world-empire";
-const SAVE_ID = "we-public";
+// Each site keeps its own save. A test site (e.g. "local") saves under its own name, because
+// a test server may share the real site's database.
+const saveId = (site) => (site === "brez" || site === "mf" ? "we-public" : `we-public-${site}`);
 
 /* ------------------------------------------------------------ numbers */
 const POP_PER_TILE = 40; // people a tile can hold
@@ -1240,7 +1242,7 @@ class Public {
     if (this.loading) return;
     this.loading = true;
     this.api
-      .siteCall(this.site, "world-get", { id: SAVE_ID })
+      .siteCall(this.site, "world-get", { id: saveId(this.site) })
       .then((res) => {
         const before = this.room.g;
         let g = before;
@@ -1281,7 +1283,7 @@ class Public {
     this.saveAt = 0;
     this.lastSave = Date.now();
     this.saving = this.api
-      .siteCall(this.site, "world-put", { id: SAVE_ID, data: serialize(g) })
+      .siteCall(this.site, "world-put", { id: saveId(this.site), data: serialize(g) })
       .then(() => (g.savedAt = Date.now()))
       .catch((err) => {
         console.log(`world-empire: saving the public world of ${this.site} failed:`, err.message);
