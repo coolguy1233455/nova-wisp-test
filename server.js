@@ -1,10 +1,12 @@
 // Wisp tunnel for Nova. The site itself is on Vercel, which can't hold WebSockets,
 // so its proxy traffic comes through here. Only pages from ALLOWED_ORIGINS
-// (comma-separated, e.g. https://example.com) or localhost may connect.
+// (comma-separated, e.g. https://example.com) or localhost may connect. The same pages also
+// play Nova's multiplayer games here, over /mp (mp/index.js).
 import { createServer } from "node:http";
 import tls from "node:tls";
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
 import { startWarp, routeFor, connectVia, warpState } from "./warp.js";
+import { mpUpgrade, mpHttp, mpShutdown } from "./mp/index.js";
 
 logging.set_level(logging.NONE);
 Object.assign(wisp.options, {
@@ -32,6 +34,7 @@ class TCPSocket {
     if (route !== "direct") this.socket = await connectVia(route, this.hostname, this.port).catch(() => null);
     this.socket ||= await connectVia("direct", this.hostname, this.port);
     const sock = this.socket;
+    sock.setNoDelay?.(true);
     const done = () => {
       this.ended = true;
       this.notify();
@@ -98,6 +101,7 @@ const server = createServer(async (req, res) => {
     "access-control-allow-origin": "*",
     "cross-origin-resource-policy": "cross-origin",
   };
+  if (req.url.startsWith("/mp/") && mpHttp(req, res, headers)) return;
   if (req.url === "/status") {
     res.writeHead(200, { ...headers, "content-type": "application/json" });
     return res.end(JSON.stringify({ ok: true, warp: await warpCheck().catch(() => "error"), ...warpState() }));
@@ -107,11 +111,19 @@ const server = createServer(async (req, res) => {
 });
 
 server.on("upgrade", (req, socket, head) => {
+  socket.setNoDelay(true);
   if (req.url.endsWith("/wisp/") && isAllowed(req.headers.origin)) wisp.routeRequest(req, socket, head, { TCPSocket });
+  // Nova's multiplayer games (mp/index.js), from the same pages only.
+  else if (req.url.split("?")[0] === "/mp" && isAllowed(req.headers.origin)) mpUpgrade(req, socket, head);
   else socket.end();
 });
 
 server.listen(parseInt(process.env.PORT || "") || 8080, "0.0.0.0", () => console.log("Wisp tunnel is running"));
+// Render sends SIGTERM before a restart: the games save what they keep, then the server stops.
+process.on("SIGTERM", () => {
+  mpShutdown().finally(() => process.exit(0));
+  setTimeout(() => process.exit(0), 20000).unref();
+});
 startWarp().catch((err) => console.log("WARP: failed to start:", err.message));
 
 // Render's free plan puts a service to sleep after 15 minutes without inbound requests,

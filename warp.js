@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import net from "node:net";
 import tls from "node:tls";
-import { promises as dns } from "node:dns";
+import { promises as dns, lookup as dnsLookup } from "node:dns";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
@@ -135,10 +135,27 @@ function fetchVia(route, host, pathname) {
 }
 
 // A paused TCP socket to host:port, opened the given way.
+// Address lookups are remembered for a minute: a page opens many connections to the same few
+// hosts, and each lookup used to add its own round trip before the connection could start.
+const lookups = new Map(); // "host|family" -> { at, err, address, family }
+function cachedLookup(host, opts, cb) {
+  if (typeof opts === "function") [cb, opts] = [opts, {}];
+  const key = `${host}|${opts?.family || 0}|${opts?.all ? 1 : 0}`;
+  const hit = lookups.get(key);
+  if (hit && Date.now() - hit.at < 60_000) return process.nextTick(() => cb(null, hit.address, hit.family));
+  dnsLookup(host, opts, (err, address, family) => {
+    if (!err) {
+      lookups.set(key, { at: Date.now(), address, family });
+      if (lookups.size > 2000) lookups.delete(lookups.keys().next().value);
+    }
+    cb(err, address, family);
+  });
+}
+
 export async function connectVia(route, host, port, timeout = 8000) {
   if (route === "direct") {
     return new Promise((resolve, reject) => {
-      const sock = net.connect({ host, port });
+      const sock = net.connect({ host, port, lookup: cachedLookup, autoSelectFamily: true });
       sock.setNoDelay(true);
       sock.once("error", reject);
       sock.once("connect", () => {
