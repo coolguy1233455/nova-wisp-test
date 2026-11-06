@@ -3,7 +3,12 @@
 // them, scored 1, ½ or 0, each side playing at its members' average rating; a side's change
 // is shared out whole to each of its members. K is split across the opponents, so a
 // five-player free-for-all moves a rating about as much as a 1v1 does.
-export const START = 1000;
+//
+// Everyone starts at 0 and a rating never goes below 0 (the owner's rule, 2026-11-05: someone
+// who has only ever lost has earned nothing, so they show 0, not 984). The math is ordinary
+// Elo, which only looks at the gap between two ratings, so starting at 0 changes nothing else.
+export const START = 0;
+export const FLOOR = 0;
 const K = 32;
 
 // sides: [{ uids: [...], place: 1 }, ...]; rating(uid) -> current rating.

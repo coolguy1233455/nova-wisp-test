@@ -20,11 +20,11 @@
 //
 // Two kinds of worlds:
 // - The public world, one per site, hosted by nobody (boot() makes it). It has a schedule:
-//   sign up before it starts (the first one starts Saturday, November 7, 2026 at 1:25 PM New
+//   sign up before it starts (the first one starts Monday, November 9, 2026 at 1:20 PM New
 //   York time), everyone signed up gets a tiny piece of land at the start, and people who
 //   didn't sign up can watch or join later if there's free land. When someone wins, the
 //   winner is shown, sign-ups open again and the next world starts two days after the win at
-//   1:25 PM. It never ends as a party (the room stays "playing"); it's saved on the site about
+//   1:20 PM. It never ends as a party (the room stays "playing"); it's saved on the site about
 //   once a minute and when the server stops.
 // - Hosted worlds (Host a party / Find a game): no player limit unless the host sets one,
 //   people can join while it's running (they get a tiny spot in free land), and it ends when
@@ -34,7 +34,7 @@
 // once (we:snap), then gets the changed tiles about four times a second (we:tick, broadcast
 // once for everyone). view() only carries each player's own numbers.
 import { makeMap, packTerrain, PLAINS, MAP_GEN } from "./we/map.js";
-import { FIRST_START, ZONE, nextStartAfterWin } from "./we/time.js";
+import { FIRST_START, OLD_FIRST_START, ZONE, nextStartAfterWin } from "./we/time.js";
 
 const ID = "world-empire";
 // Each site keeps its own save. A test site (e.g. "local") saves under its own name, because
@@ -78,7 +78,7 @@ let clock = () => Date.now(); // replaced in tests
 
 // Local testing only: a game server the site doesn't trust can't read or save the public
 // world. WE_TEST_OFFLINE=1 plays it anyway without saving; WE_TEST_START=<seconds> makes a new
-// public world start that long after this server starts (instead of November 7).
+// public world start that long after this server starts (instead of November 9).
 const TEST_OFFLINE = !!process.env.WE_TEST_OFFLINE;
 const TEST_START = process.env.WE_TEST_START ? Date.now() + Number(process.env.WE_TEST_START) * 1000 : 0;
 
@@ -1375,6 +1375,7 @@ function restore(text) {
   const g = blankState(true);
   g.phase = d.phase === "running" ? "running" : "signup";
   g.startAt = Number(d.startAt) || FIRST_START;
+  if (g.phase === "signup" && g.startAt === OLD_FIRST_START) g.startAt = FIRST_START; // moved to Mon Nov 9, 1:20 PM
   g.winner = d.winner || null;
   g.roundNo = Math.max(1, d.roundNo | 0);
   for (const s of d.signups || []) if (s?.uid) g.signups.set(String(s.uid), { uid: String(s.uid), name: String(s.name || "Player").slice(0, 24), at: Number(s.at) || 0 });

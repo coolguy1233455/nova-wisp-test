@@ -22,14 +22,11 @@
 //   teamGame: true (players report a winner) or false (co-op: a "Done" button ends it)
 const SETTLE_MS = 30_000;
 
-// What the lobby shows as a party setting: the host's screen is where the game runs.
-const RUNS_ON = { key: "screen", label: "The game runs on", type: "select", def: "host", choices: [{ value: "host", label: "the host's screen (streamed to everyone)" }] };
-
 export function remoteGame(def) {
   const game = {
     relay: true,
     graceMs: 30_000,
-    options: [RUNS_ON, ...(def.options || [])],
+    options: def.options || [],
     ...def,
 
     create(room) {
@@ -81,7 +78,7 @@ export function remoteGame(def) {
       if (p.uid === g.host) {
         const agreed = agreedValue(room, g);
         if (agreed !== null) return finish(room, g, agreed, "The host left; the reported result stands");
-        return room.end({ aborted: true, reason: `${p.name} (the host) left, and the game ran on their screen` });
+        return room.end({ aborted: true, reason: `${p.name} (the host) left, so the game ended` });
       }
       if (def.teamGame) {
         // A whole team gone: the other team wins.
@@ -97,14 +94,14 @@ export function remoteGame(def) {
     },
 
     disconnect(room, g, p) {
-      if (p.uid === g.host) room.toast("The host lost connection. Waiting up to 30 seconds for them…");
+      if (p.uid === g.host) room.toast(`${p.name} (the host) lost connection. Waiting up to 30 seconds for them…`);
       settle(room, g);
       room.update();
     },
 
     summary(room, g) {
       const host = room.players.find((x) => x.uid === room.host);
-      return host ? { text: `on ${host.name}'s screen` } : null;
+      return host ? { text: `hosted by ${host.name}` } : null;
     },
   };
   return game;

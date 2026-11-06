@@ -18,7 +18,7 @@
 import { WebSocketServer } from "ws";
 import { randomBytes, randomInt } from "node:crypto";
 import { checkToken, siteCall, publicKey, SITES } from "./sites.js";
-import { eloChanges, START } from "./elo.js";
+import { eloChanges, START, FLOOR } from "./elo.js";
 import { GAMES, catalog } from "./games/index.js";
 
 const wss = new WebSocketServer({ noServer: true, maxPayload: 600 * 1024, perMessageDeflate: false });
@@ -259,7 +259,7 @@ export class Room {
       code: this.code,
       game: this.gameId,
       variant: this.variant,
-      gameName: this.rules.name,
+      gameName: this.def.name,
       name: this.name,
       opts: this.opts,
       host: this.host,
@@ -411,7 +411,9 @@ export class Room {
       for (const s of sides)
         for (const uid of s.uids) {
           const r = { ...ratingOf(this.site, this.gameKey, uid) };
-          r.elo = Math.max(100, r.elo + (deltas[uid] || 0));
+          const before = r.elo;
+          r.elo = Math.max(FLOOR, r.elo + (deltas[uid] || 0));
+          deltas[uid] = r.elo - before; // what really changed (a loss at 0 changes nothing)
           r.games++;
           if (s.place === 1 && sides.some((o) => o.place > 1)) r.wins++;
           map.set(`${this.gameKey}|${uid}`, r);

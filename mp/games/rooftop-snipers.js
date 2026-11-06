@@ -1,5 +1,5 @@
 // Rooftop Snipers (New Eich Games), the one already in Nova's games, played online through
-// remote play (remote.js): the host's screen runs the real game and streams it; everyone's
+// remote play (remote.js): the party's host runs the real game and streams it; everyone's
 // key presses are replayed there. Each side has two buttons: Player 1 jumps with W and shoots
 // with E, Player 2 jumps with I and shoots with O. 1v1: each player has both of their side's
 // buttons. 2v2: teammates split them, one jumps and one shoots (they can swap jobs).
@@ -16,8 +16,8 @@ export default remoteGame({
   teamGame: true,
   canSwap: true,
   info: {
-    blurb: "Two buttons, one rooftop: jump, shoot and knock the other side off. Online, on the host's screen.",
-    how: "The host's screen runs the real game and streams it to everyone else, who play through the live picture (so the host should be on a good connection and keep the tab open). The host picks 2 Players in the game's menu. Red is the game's Player 1, Blue is Player 2. In 1v1 you have both of your side's buttons: jump (W or ↑) and shoot (E or Space). In 2v2 you and your teammate split them: one of you jumps, the other shoots (any of your keys does your job, and you can swap jobs). When the game shows a winner, report it with the buttons under the picture: it counts once everyone agrees, or after 30 seconds if nobody disagrees.",
+    blurb: "Two buttons, one rooftop: jump, shoot and knock the other side off.",
+    how: "Create a party, wait for your friend to join and press Start: the game opens in Two Player mode by itself, then each of you presses Jump to get ready. Red is Player 1 (left), Blue is Player 2 (right). In 1v1 you have both of your side's buttons: jump (W or ↑) and shoot (hold E or Space to raise the gun, let go to fire). In 2v2 one of you jumps and the other shoots (you can swap jobs). First to 5 wins; when the game shows the winner, tap who won under the game (it counts once you agree, or after 30 seconds if nobody disagrees). Whoever creates the party runs the game on their device, so they should keep the tab open.",
     keys: "W or ↑: jump · E or Space: shoot (2v2: any key does your job) · on a phone or iPad: the big buttons",
     cover: "/games/rooftop-snipers/thumb.webp",
   },

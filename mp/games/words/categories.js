@@ -154,36 +154,9 @@ const RAW = {
 };
 
 /* ------------------------------------------------------------ matching */
-// One answer, as a plain key: lowercase letters and digits only, no accents, "&" read as
-// "and", and a leading "the"/"a"/"an" dropped.
-export function keyOf(s) {
-  let k = String(s ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/\(.*?\)/g, " ")
-    .trim();
-  k = k.replace(/^(the|a|an)\s+/, "");
-  return k.replace(/[^a-z0-9]/g, "");
-}
-
-// Singular/plural guesses for a key: "cherries" -> "cherry", "boxes" -> "box", "leaves" ->
-// "leaf", "peas" -> "pea"; and the other way, so "pea" also finds "peas".
-function forms(k) {
-  const out = new Set([k]);
-  if (k.length >= 4) {
-    if (k.endsWith("ies")) out.add(k.slice(0, -3) + "y");
-    if (k.endsWith("ves")) (out.add(k.slice(0, -3) + "f"), out.add(k.slice(0, -3) + "fe"));
-    if (k.endsWith("es")) out.add(k.slice(0, -2));
-    if (k.endsWith("s") && !k.endsWith("ss")) out.add(k.slice(0, -1));
-    if (k.endsWith("i")) out.add(k.slice(0, -1) + "us"); // cacti, octopi
-    out.add(k + "s");
-    out.add(k + "es");
-    if (k.endsWith("y")) out.add(k.slice(0, -1) + "ies");
-  }
-  return out;
-}
+// keyOf, forms and distance live in match.js (shared with Reef Rush's prompt bank).
+import { keyOf, forms, distance } from "./match.js";
+export { keyOf };
 
 export const CATEGORIES = {};
 for (const [id, c] of Object.entries(RAW)) {
@@ -225,27 +198,4 @@ export function match(id, text) {
   }
   if (idx === undefined) return null;
   return { idx, show: cat.answers[idx].show };
-}
-
-// Edit distance (letters added, removed, changed or swapped), giving up past limit.
-function distance(a, b, limit) {
-  const m = a.length;
-  const n = b.length;
-  let prev2 = null;
-  let prev = Array.from({ length: n + 1 }, (_, j) => j);
-  for (let i = 1; i <= m; i++) {
-    const cur = [i];
-    let rowMin = i;
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
-      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
-      cur.push(v);
-      if (v < rowMin) rowMin = v;
-    }
-    if (rowMin > limit) return limit + 1;
-    prev2 = prev;
-    prev = cur;
-  }
-  return prev[n];
 }

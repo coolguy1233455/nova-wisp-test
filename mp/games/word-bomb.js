@@ -1,5 +1,5 @@
 // Word Bomb: a word chain with a ticking bomb. 2 to 5 players sit in a circle and the bomb
-// goes round. On your turn you type an English word (3+ letters, in the dictionary) that
+// goes round. On your turn you type an English word (any length, in the dictionary) that
 // starts with the last letter of the word before it, and that nobody has said yet this game.
 // Get one in and the bomb passes on; run out of fuse and it blows up in your hands: you lose
 // a life and the next player starts fresh from a random letter. Out of lives, you're out.
@@ -33,7 +33,7 @@ export default {
   options: [{ key: "lives", label: "Lives", type: "number", min: 1, max: 5, def: LIVES }],
   info: {
     blurb: "Pass the bomb with a word. Each word starts with the last letter of the one before.",
-    how: "On your turn, type an English word of 3 or more letters that starts with the last letter of the previous word (dog → good → door…). No repeats. A good word passes the bomb to the next player; if the fuse burns out while you hold it, it explodes and you lose a life. After an explosion the next player starts from a random letter. Lose all your lives and you're out. The last player standing wins.",
+    how: "On your turn, type any English word (short ones like a, ox and cat count too) that starts with the last letter of the previous word (dog → good → door…). No repeats. A good word passes the bomb to the next player; if the fuse burns out while you hold it, it explodes and you lose a life. After an explosion the next player starts from a random letter. Lose all your lives and you're out. The last player standing wins.",
     keys: "Type your word · Enter to send it",
   },
 
@@ -78,7 +78,7 @@ export default {
     if (a.k === "word") {
       const w = plainWord(a.word).slice(0, MAX_WORD + 1);
       let why = "";
-      if (w.length < 3) why = "At least 3 letters";
+      if (!w.length) why = "Type a word";
       else if (w.length > MAX_WORD) why = "That's too long";
       else if (g.letter && w[0] !== g.letter) why = `Must start with ${g.letter.toUpperCase()}`;
       else if (g.used.has(w)) why = "Already used";

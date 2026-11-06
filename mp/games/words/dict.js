@@ -1,31 +1,36 @@
-// The English dictionary that Word Bomb and Reef Rush check words against: the "word-list"
-// npm package (MIT, ~274,000 lowercase words, one per line, in alphabetical order).
+// The English dictionary that Word Bomb and the other word games check words against:
+// words/english.txt.gz, ~450,000 lowercase words, one per line, sorted (made by
+// scripts/build-words.mjs from three free word lists plus words/extra.js: Scrabble words,
+// names of places, days and languages, contractions typed without the apostrophe, slang,
+// brands and games). Words of every length are in it, but only real ones: a, i and o, the
+// 2-letter Scrabble words plus "ok", and so on.
 //
 // It's loaded the first time a game asks, and only once for the whole server. A Set of all
-// those words would cost about 20 MB of heap (and ~55 MB of RSS while it's built), which is
-// a lot on a 512 MB server shared with the proxy. So instead the file stays in memory as
-// one plain string (~2.7 MB) with a table of where each word starts (~1.4 MB), and a lookup
-// is a binary search through that table: about 18 short comparisons, nothing to notice.
+// those words would cost about 35 MB of heap, which is a lot on a 512 MB server shared with
+// the proxy. So instead the file stays in memory as one plain string (~4.5 MB) with a table
+// of where each word starts (~1.8 MB), and a lookup is a binary search through that table:
+// about 19 short comparisons, nothing to notice.
 import { readFileSync } from "node:fs";
-import wordListPath from "word-list";
+import { gunzipSync } from "node:zlib";
 
-// A few everyday words the list is missing (it predates them).
-const EXTRA = ["emoji", "emojis", "selfie", "selfies", "wifi", "gifs", "livestream", "livestreams", "livestreamed", "livestreaming", "youtuber", "youtubers", "unfollow", "unfollowed", "hashtagged"];
+const FILE = new URL("./english.txt.gz", import.meta.url);
 
 let text = null; // the whole file
-let starts = null; // where each kept word starts in it, in alphabetical order
+let starts = null; // where each word starts in it, in alphabetical order
 let lens = null; // and how long it is
 let count = 0;
-let odd = null; // the few words the file lists out of order (looked up in a Set instead)
+let odd = null; // any words the file lists out of order (looked up in a Set instead)
 
 export function loadWords() {
   if (text) return;
   const t0 = Date.now();
   // latin1: every byte is one character, so the string stays one byte per letter.
-  text = readFileSync(wordListPath, "latin1");
-  starts = new Uint32Array(300_000);
-  lens = new Uint8Array(300_000);
-  odd = new Set(EXTRA);
+  text = gunzipSync(readFileSync(FILE)).toString("latin1");
+  let n = 1;
+  for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) n++;
+  starts = new Uint32Array(n);
+  lens = new Uint8Array(n);
+  odd = new Set();
   let i = 0;
   let prevStart = -1;
   let prevLen = 0;
@@ -33,15 +38,9 @@ export function loadWords() {
     let j = text.indexOf("\n", i);
     if (j < 0) j = text.length;
     const len = j - i;
-    // Keep words of 3+ plain letters (a-z), the only ones either game accepts.
-    let plain = len >= 3 && len < 40;
-    for (let k = i; plain && k < j; k++) {
-      const c = text.charCodeAt(k);
-      if (c < 97 || c > 122) plain = false;
-    }
-    if (plain) {
+    if (len > 0 && len < 40) {
       if (prevStart >= 0 && compareAt(prevStart, prevLen, text, i, len) >= 0) odd.add(text.slice(i, j));
-      else if (count < starts.length) {
+      else {
         starts[count] = i;
         lens[count] = len;
         count++;
@@ -66,7 +65,7 @@ function compareAt(aStart, aLen, str, bStart, bLen) {
 
 // Is w (already lowercase a-z) an English word?
 export function isWord(w) {
-  if (typeof w !== "string" || w.length < 3) return false;
+  if (typeof w !== "string" || !w.length) return false;
   loadWords();
   if (odd.has(w)) return true;
   let lo = 0;

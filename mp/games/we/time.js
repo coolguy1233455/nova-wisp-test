@@ -1,10 +1,13 @@
 // When the public World Empire world starts. All times are New York time (the friends' own),
-// daylight saving included: the first world starts Saturday, November 7, 2026 at 1:25 PM, and
-// after every win the next one starts two days later (by the calendar, in New York) at 1:25 PM.
+// daylight saving included: the first world starts Monday, November 9, 2026 at 1:20 PM (moved
+// from Saturday, November 7 at 1:25 PM at the owner's request on 2026-11-05), and after every
+// win the next one starts two days later (by the calendar, in New York) at 1:20 PM.
 export const ZONE = "America/New_York";
 export const START_HOUR = 13;
-export const START_MINUTE = 25;
-export const FIRST_START = Date.UTC(2026, 10, 7, 18, 25); // 1:25 PM EST = 18:25 UTC
+export const START_MINUTE = 20;
+export const FIRST_START = Date.UTC(2026, 10, 9, 18, 20); // Mon Nov 9, 1:20 PM EST = 18:20 UTC
+// The old first start. A public world saved while still waiting for it moves to FIRST_START.
+export const OLD_FIRST_START = Date.UTC(2026, 10, 7, 18, 25);
 export const DAYS_AFTER_WIN = 2;
 
 const parts = new Intl.DateTimeFormat("en-US", {
@@ -37,7 +40,7 @@ export function nyTime(y, m, d, h, min) {
   return Date.UTC(y, m - 1, d, h + 4, min);
 }
 
-// The next public world after a win at `wonAt`: the calendar day two days later, 1:25 PM.
+// The next public world after a win at `wonAt`: the calendar day two days later, 1:20 PM.
 export function nextStartAfterWin(wonAt) {
   const p = nyParts(wonAt);
   const day = new Date(Date.UTC(p.y, p.m - 1, p.d + DAYS_AFTER_WIN));
