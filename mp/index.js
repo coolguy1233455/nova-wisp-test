@@ -10,9 +10,13 @@
 // chats and games in progress only live in this server's memory, and a room's chat is gone
 // when its round ends.
 //
-// Messages from a player: hello {token}, lobby {game}, host {game, variant, opts}, join {code
-// or id}, spectate {id}, find {game, variant, opts}, cancel, leave, start, kick {uid},
-// team {team}, opts {opts}, act {a}, chat {text}, rematch, rematch-no, rp {to, d}, ping.
+// Messages from a player: hello {token}, lobby {game}, host {game, variant, opts, private},
+// join {code or id}, spectate {id}, find {game, variant, opts}, cancel, leave, start,
+// kick {uid}, team {team}, opts {opts}, privacy {private}, act {a}, chat {text}, rematch,
+// rematch-no, rp {to, d}, ping.
+//
+// A private party (the host's choice) never shows on the game's page, isn't counted in the
+// green dots and isn't found by "Find a game": only people who type its code get in.
 // To a player: welcome, counts, rooms, room, game {s}, chat {msg}, result, left, error, toast,
 // finding, rp, and whatever a game sends itself (sendTo / broadcast).
 import { WebSocketServer } from "ws";
@@ -145,7 +149,7 @@ function cleanOpts(rules, raw = {}) {
 }
 
 export class Room {
-  constructor({ site, gameId, variant = null, opts = {}, host = null, matchmade = false, persistent = false, name = "" }) {
+  constructor({ site, gameId, variant = null, opts = {}, host = null, matchmade = false, persistent = false, name = "", priv = false }) {
     this.id = randomBytes(6).toString("base64url");
     this.code = newCode();
     this.site = site;
@@ -158,6 +162,7 @@ export class Room {
     this.host = host?.uid || null;
     this.matchmade = matchmade;
     this.persistent = persistent;
+    this.private = !!priv && !matchmade && !persistent;
     this.name = name;
     this.players = []; // { uid, name, photo, team, client, connected, left }
     this.specs = new Set(); // Clients watching
@@ -266,6 +271,7 @@ export class Room {
       state: this.state,
       matchmade: this.matchmade,
       persistent: this.persistent,
+      private: this.private,
       countdown: this.countdown ? Math.max(0, this.countdown - Date.now()) : 0,
       players: this.active.map((p) => ({ uid: p.uid, name: p.name, photo: p.photo, team: p.team, connected: p.connected, elo: this.opts.ranked ? ratingOf(this.site, this.gameKey, p.uid).elo : undefined })),
       specs: [...this.specs].map((c) => c.person),
@@ -488,7 +494,7 @@ function lobbyChanged(room) {
 function sendLobbies() {
   lobbyTimer = null;
   for (const site of dirtySites) {
-    const list = [...rooms.values()].filter((r) => r.site === site);
+    const list = [...rooms.values()].filter((r) => r.site === site && !r.private);
     const counts = {};
     for (const id of Object.keys(GAMES)) counts[id] = { open: 0, playing: 0 };
     for (const r of list) {
@@ -504,7 +510,7 @@ function sendLobbies() {
   dirtySites.clear();
 }
 const roomsFor = (site, game) => {
-  const list = [...rooms.values()].filter((r) => r.site === site && r.gameId === game).map((r) => r.summary());
+  const list = [...rooms.values()].filter((r) => r.site === site && r.gameId === game && !r.private).map((r) => r.summary());
   return { t: "rooms", game, open: list.filter((r) => r.joinable), playing: list.filter((r) => !r.joinable && r.state !== "lobby") };
 };
 
@@ -516,7 +522,7 @@ function find(client, { game, variant, opts }) {
   if (!rules) return client.send({ t: "error", msg: "Unknown game" });
   const want = cleanOpts(rules, opts);
   const match = [...rooms.values()]
-    .filter((r) => r.site === client.site && r.gameKey === (rules.variant ? `${game}:${rules.variant}` : game) && r.state === "lobby" && !r.full && !r.persistent && sameOpts(r.opts, want))
+    .filter((r) => r.site === client.site && r.gameKey === (rules.variant ? `${game}:${rules.variant}` : game) && r.state === "lobby" && !r.full && !r.persistent && !r.private && sameOpts(r.opts, want))
     .sort((a, b) => b.active.length - a.active.length)[0];
   leaveRoom(client);
   client.finding = { game, variant, opts: want };
@@ -552,15 +558,24 @@ function onMessage(client, msg) {
       if (!rules) return client.send({ t: "error", msg: "Unknown game" });
       if (rules.noHost) return client.send({ t: "error", msg: "That game can't be hosted" });
       leaveRoom(client);
-      new Room({ site: client.site, gameId: msg.game, variant: rules.variant, opts: msg.opts, host: client }).addPlayer(client);
+      new Room({ site: client.site, gameId: msg.game, variant: rules.variant, opts: msg.opts, host: client, priv: msg.private === true }).addPlayer(client);
       return;
     }
     case "join": {
       const code = String(msg.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-      const r = [...rooms.values()].find((x) => x.site === client.site && (x.id === msg.id || (code && x.code === code)));
+      // A private party only lets people in by its code (its id is never shown to anyone outside it).
+      const r = [...rooms.values()].find((x) => x.site === client.site && ((x.id === msg.id && (!x.private || x.player(client.uid))) || (code && x.code === code)));
       if (!r) return client.send({ t: "error", msg: "No party with that code" });
       if (r.player(client.uid)) return r.addPlayer(client);
-      if (!r.joinable) return client.send({ t: "error", msg: r.full ? "That party is full" : "That game already started. You can watch it instead." });
+      if (!r.joinable) {
+        // A private game isn't listed to watch, so its code lets you watch it instead.
+        if (r.private && code && r.state !== "lobby") {
+          leaveRoom(client);
+          client.send({ t: "toast", msg: "That game already started, so you're watching it" });
+          return r.addSpec(client);
+        }
+        return client.send({ t: "error", msg: r.full ? "That party is full" : "That game already started. You can watch it instead." });
+      }
       leaveRoom(client);
       return r.addPlayer(client);
     }
@@ -568,6 +583,7 @@ function onMessage(client, msg) {
       const r = rooms.get(msg.id);
       if (!r || r.site !== client.site) return client.send({ t: "error", msg: "That game is over" });
       if (r.player(client.uid)) return r.addPlayer(client);
+      if (r.private) return client.send({ t: "error", msg: "That party is private. Ask for its code." });
       leaveRoom(client);
       return r.addSpec(client);
     }
@@ -604,6 +620,14 @@ function onMessage(client, msg) {
         if (room.opts.mode !== before) for (const p of room.active) p.team = -1;
         for (const p of room.active) if (p.team === -1 || (room.teamCount() && p.team >= room.teamCount())) p.team = room.pickTeam();
         while (room.full && room.active.length > room.opts.max) room.removePlayer(room.active[room.active.length - 1].uid, "kicked");
+        room.changed();
+      }
+      return;
+    case "privacy":
+      // The host can make the party public or private at any time (not a matchmade one).
+      if (host && !room.matchmade && !room.persistent && room.private !== (msg.private === true)) {
+        room.private = msg.private === true;
+        room.toast(room.private ? "The party is private now: only people with the code can join" : "The party is public now: anyone can find and join it");
         room.changed();
       }
       return;
