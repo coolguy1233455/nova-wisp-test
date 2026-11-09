@@ -1,121 +1,102 @@
-# Host Nova and Nova-Wisp on Fly.io: Click-by-Click Beginner Guide
+# Host Nova and Nova-Wisp on Fly.io from an iPad (Browser-Only Guide)
 
-This guide explains where to go, what to create, and exactly what to type. You will host two separate services on Fly.io:
+This version is for someone using an **iPad, a web browser, and no locally installed apps**. It uses GitHub Codespaces as a computer in the cloud. You open it in your browser; the terminal and project files run there, not on your iPad. You do not need to install Git, VS Code, or Fly's command-line tool on the iPad.
+
+You will create **two separate Fly.io apps**:
 
 | Fly.io app | What it does | Example name |
 |---|---|---|
 | **Nova-Wisp** | WebSocket service for Nova's proxy browser and multiplayer features. Its code is in this repository. | `my-nova-wisp` |
-| **Nova** | The website and application, whose code is in [`johnnywalker100/nova`](https://github.com/johnnywalker100/nova). | `my-nova-site` |
+| **Nova** | The website and application, from [`johnnywalker100/nova`](https://github.com/johnnywalker100/nova). | `my-nova-site` |
 
-These are **two Fly.io apps**, not two GitHub repositories and not two accounts. You create them by running `fly launch` in each downloaded project folder. You do not need to click a “New App” button in the Fly.io website for this guide.
+These are two online apps, not iPad apps. You create them by running `flyctl launch` from the matching project folder in the Codespaces terminal. You do **not** click “New App” on Fly.io for this guide.
 
-> **Before starting:** You need permission to access the Nova GitHub repository. Fly.io may charge for running apps and machines; check its current pricing before continuing. This setup keeps both apps running so WebSocket connections can work.
+> **Before starting:** You need access to the Nova repository and a GitHub account that can use Codespaces. Codespaces and Fly.io have usage limits and may require billing setup. Check their current pricing before continuing. Fly.io may charge to keep the apps running.
 
-## What you need
+## What you need on your iPad
 
+- Safari or another web browser.
 - A GitHub account with access to [`johnnywalker100/nova`](https://github.com/johnnywalker100/nova).
-- A Fly.io account: go to <https://fly.io/> and choose **Sign up** (or **Log in**).
-- A computer, internet connection, and about an hour.
-- Git, Fly's command-line program (`fly`), and a text editor. This guide uses Visual Studio Code (VS Code).
-- Google Cloud and Supabase accounts only if you are setting up Google sign-in and Nova's database features.
+- A Fly.io account at <https://fly.io/>.
+- A GitHub Codespaces allowance or billing setup. If GitHub says you cannot create a codespace, check the account's Codespaces quota/billing settings.
+- Google Cloud and Supabase accounts only if you want Google sign-in and Nova's database features.
 
-If you are using Windows, the instructions below use **PowerShell**. On a Mac, use **Terminal**. Commands are the lines shown in shaded code boxes. Type or paste a command into the terminal and press **Enter**. Do not type the `$` prompt sometimes shown in other tutorials. Run one command at a time and wait for it to finish.
+**Important:** Use GitHub **Codespaces**, not the `github.dev` editor. The `github.dev` editor can edit files but does not provide the terminal needed to deploy. Codespaces provides both the editor and terminal in your browser.
 
-## First: know which window is which
+## The two browser pages you will use
 
-- **Browser:** Used to visit GitHub, Fly.io, Google Cloud, and Supabase websites.
-- **Terminal:** A window for commands such as `git clone` and `fly deploy`.
-- **Project folder:** A folder on your computer containing downloaded code. The folder name tells Fly which project you are working on.
-- **Fly app:** The online service you create and deploy. You will make two, one from each project folder.
+1. **GitHub Codespaces:** Open the repository in a browser-based editor. In that editor, use **Terminal → New Terminal** to type commands. Commands in shaded boxes go into that terminal, one at a time, followed by Enter. Do not type the backticks around them.
+2. **Fly.io dashboard:** Sign in at <https://fly.io/>. The command-line tool you run in Codespaces will create the Fly apps and deploy them.
 
-The commands below are not entered into the GitHub or Fly.io website. Enter them in your computer's terminal.
+Keep the Codespaces browser tab open while working. If you close it, reopen your codespace from the repository's **Code → Codespaces** menu.
 
-## 1. Install the tools and sign in
+## 1. Open a Codespace in your browser
 
-### Install Git
+1. In Safari, open this repository: <https://github.com/coolguy1233455/nova-wisp-test>.
+2. Sign in to GitHub if asked.
+3. On the repository page, tap the green **Code** button.
+4. Tap the **Codespaces** tab in the menu.
+5. Tap **Create codespace on main**. If the branch name shown is different, choose the repository's default branch.
+6. Wait for the browser editor to load. This may take a few minutes. You should see files on the left and menus across the top.
+7. In the top menu, tap **Terminal → New Terminal**. A terminal panel should appear at the bottom. This is where you enter the commands in this guide.
 
-1. In your browser, open <https://git-scm.com/downloads>.
-2. Select your computer's operating system and download/install Git. The default installation choices are fine.
-3. Open a terminal:
-   - **Windows:** Open the Start menu, type **PowerShell**, and open **Windows PowerShell**.
-   - **Mac:** Open **Applications → Utilities → Terminal** (or use Spotlight to search for Terminal).
-4. Check Git by typing this and pressing Enter:
+If you do not see a Codespaces tab or GitHub will not create one, Codespaces may not be enabled or available on your account. You cannot deploy using only GitHub's file editor; you need a browser-based terminal such as Codespaces or access to a computer with a terminal.
+
+The codespace starts with this repository checked out in a folder named `nova-wisp-test`. Later, we will download Nova next to it.
+
+## 2. Sign in to Fly and download Nova
+
+First create/sign in to your Fly.io account in another browser tab at <https://fly.io/>. Then return to the Codespaces terminal.
+
+### Install Fly's command-line tool inside Codespaces
+
+This installs the tool in the remote Codespaces environment, **not on your iPad**. In the Codespaces terminal, run:
 
 ```sh
-git --version
+curl -L https://fly.io/install.sh | sh
 ```
 
-A version number means it worked.
-
-### Install Fly's command-line tool
-
-1. In your browser, open Fly's installation page: <https://fly.io/docs/flyctl/install/>.
-2. Follow the instructions for your operating system. This installs Fly's command-line tool, called `fly` or sometimes `flyctl`.
-3. Close and reopen your terminal, then check it:
+Then make the command available in this terminal and check it:
 
 ```sh
-fly version
+export FLYCTL_INSTALL="$HOME/.fly"
+export PATH="$FLYCTL_INSTALL/bin:$PATH"
+flyctl version
 ```
 
-If your computer says `fly` is not recognized but `flyctl` works, use `flyctl` instead of `fly` in every command in this guide.
+If you open a new terminal later and it says `flyctl` is not found, run the two `export` lines again.
 
-### Sign in to Fly
-
-1. In a browser, sign up or log in at <https://fly.io/>.
-2. In your terminal, run:
+Sign in:
 
 ```sh
-fly auth login
+flyctl auth login
 ```
 
-3. A browser page will open. Follow its sign-in/authorization steps. Return to the terminal after it confirms you are signed in.
+If Codespaces cannot automatically open the sign-in page, look in the terminal for a Fly.io login link. Copy that link, open it in a new Safari tab, and complete sign-in. Return to the Codespaces tab afterward. If no link appears or sign-in fails, follow Fly's current CLI sign-in help at <https://fly.io/docs/flyctl/>.
 
-## 2. Download both projects onto your computer
-
-You need both project folders on your computer before deploying. Do not create the Fly apps yet.
-
-1. Make a folder somewhere easy to find, for example a folder named `nova-deploy` on your Desktop.
-2. Open a terminal **in that folder**. One easy way is to open the folder in VS Code, then select **Terminal → New Terminal** from VS Code's top menu. If VS Code asks whether you trust the folder, choose the option to trust it.
-3. Check that the terminal is in the `nova-deploy` folder. The terminal prompt normally shows the folder name. If it does not, stop and open the correct folder before continuing.
-4. Paste this command and press Enter to download Nova-Wisp:
+Now download Nova into the parent workspace so it sits beside Nova-Wisp. Run these commands separately:
 
 ```sh
-git clone https://github.com/coolguy1233455/nova-wisp-test.git
-```
-
-5. Paste this next command and press Enter to download Nova:
-
-```sh
+cd /workspaces
 git clone https://github.com/johnnywalker100/nova.git
 ```
 
-If GitHub reports that you do not have permission to access Nova, stop and ask the Nova repository owner for access. Do not continue with only one project.
-
-When both commands finish, your `nova-deploy` folder should contain these two folders:
+If GitHub says you do not have permission to access Nova, stop and ask the repository owner for access. The folders should now be:
 
 ```text
-nova-deploy/
-  nova-wisp-test/
-  nova/
+/workspaces/
+  nova-wisp-test/  (the repository opened in Codespaces)
+  nova/            (the Nova repository you just cloned)
 ```
 
-## 3. Create and deploy the Nova-Wisp Fly app
+## 3. Prepare and create the Nova-Wisp Fly app
 
-### Open the Nova-Wisp folder
+### Create the Dockerfile in the browser editor
 
-In VS Code, choose **File → Open Folder** and open the `nova-wisp-test` folder inside `nova-deploy`. Then choose **Terminal → New Terminal**. The terminal should now be working in `nova-wisp-test`.
-
-If you already have a terminal open in `nova-deploy`, you can instead enter this command and press Enter:
-
-```sh
-cd nova-wisp-test
-```
-
-### Add the Dockerfile
-
-1. In VS Code's Explorer panel on the left, click the **New File** icon (a page with a plus sign).
-2. Name the file exactly `Dockerfile` — capital D, with no `.txt` at the end. Create it inside `nova-wisp-test`, at the same level as `package.json`.
-3. Paste in the following contents and save the file (**Ctrl+S** on Windows/Linux, **Command+S** on Mac):
+1. In the files panel on the left, open the `nova-wisp-test` folder if it is not already open.
+2. In the Explorer panel, tap the **New File** icon (a page with a plus sign).
+3. Name the file exactly `Dockerfile` (capital D, no `.txt`) and create it in the top level of `nova-wisp-test`, beside `package.json`.
+4. Paste this into the file and save it. On an iPad keyboard, use the editor's **File → Save** menu if the usual keyboard shortcut is unavailable.
 
 ```dockerfile
 FROM node:22-bookworm-slim
@@ -133,27 +114,30 @@ EXPOSE 8080
 CMD ["npm", "start"]
 ```
 
-### Create the first Fly app
+The install step also tries to download optional WARP helper programs. If those downloads are unavailable, Nova-Wisp is designed to continue without WARP and connect directly instead.
 
-Make sure the terminal is still in the `nova-wisp-test` folder. Run:
+### Create the Nova-Wisp app
+
+In the terminal, enter the Wisp folder and start Fly's setup:
 
 ```sh
-fly launch --no-deploy
+cd /workspaces/nova-wisp-test
+flyctl launch --no-deploy
 ```
 
-Fly will ask questions in the terminal. The exact wording can vary, but make these choices:
+Fly will ask questions in the terminal. The wording can vary. Choose:
 
-- **App name:** Enter a unique name, such as `my-nova-wisp`. If it is already taken, try another name, such as `my-nova-wisp-2026`. Use lowercase letters, numbers, and hyphens; do not use spaces. Write down the exact name.
-- **Organization/account:** Choose your personal account unless you intentionally deploy under an organization.
-- **Region:** Choose a nearby region. Write down the selected region.
-- **Deploy now?** Choose **No**. The command already includes `--no-deploy`; if asked, do not deploy yet.
-- **Other optional setup questions:** For this guide, do not add a database or set up a custom domain during launch. Keep the generated configuration and follow the steps below.
+- **App name:** A unique name, such as `my-nova-wisp`. If it is taken, try `my-nova-wisp-2026`. Use lowercase letters/numbers/hyphens, no spaces. Write down the exact name.
+- **Organization/account:** Your personal account unless you intentionally use an organization.
+- **Region:** A nearby region. Write it down.
+- **Deploy now?:** Choose **No** if asked. We will check the settings first.
+- **Database or custom domain:** Do not add these for this guide.
 
-This command creates a **Fly app** and a `fly.toml` file in the current project folder. It does not create another folder or a GitHub repository.
+This creates a Fly app and a `fly.toml` file in the Nova-Wisp folder. It does not create an iPad app.
 
-### Check the Nova-Wisp settings and deploy
+### Check the settings and deploy Nova-Wisp
 
-Open `fly.toml` in VS Code. Check that it has your Wisp app name, a Dockerfile build, and port `8080`. Its relevant settings should look like this (keep any other generated settings unless they conflict):
+In the Explorer, open `nova-wisp-test/fly.toml`. Check that it uses your app name and has settings like these. Replace the example app name and region with the values Fly selected; keep other generated settings unless they conflict.
 
 ```toml
 app = "YOUR-WISP-APP-NAME"
@@ -173,231 +157,235 @@ primary_region = "YOUR-REGION"
   min_machines_running = 1
 ```
 
-Replace the example app name and region with the actual values in your file. Save it. Back in the terminal, still in `nova-wisp-test`, run:
+Save the file. In the terminal, run:
 
 ```sh
-fly deploy
+flyctl deploy
 ```
 
-Wait for the deployment to finish successfully. To check it, run:
+Wait for success, then check the app:
 
 ```sh
-fly status
+flyctl status
 ```
 
-Your Wisp app's web address is `https://YOUR-WISP-APP-NAME.fly.dev`. Its WebSocket address, which Nova needs, is:
+Write down your Wisp address. If your app name is `my-nova-wisp`, the addresses are:
 
 ```text
-wss://YOUR-WISP-APP-NAME.fly.dev/wisp/
+Website/status address: https://my-nova-wisp.fly.dev
+Nova WebSocket address: wss://my-nova-wisp.fly.dev/wisp/
 ```
 
-Replace `YOUR-WISP-APP-NAME` with the exact Wisp app name you wrote down. Keep this address handy.
+Use your actual app name, not the example. Keep the WebSocket address handy.
 
 ## 4. Prepare and create the Nova Fly app
 
-### Open the Nova project folder
+### Edit Nova's Wisp address
 
-In VS Code, choose **File → Open Folder** and open `nova` (the sibling folder next to `nova-wisp-test`). Then choose **Terminal → New Terminal**. The terminal must be inside `nova` for the commands in this section.
-
-If your terminal is still in `nova-wisp-test`, go up one folder and into Nova:
-
-```sh
-cd ../nova
-```
-
-### Tell Nova where Nova-Wisp is
-
-In VS Code's Explorer, open `public`, then click `config.js`. Find the line containing `window.NOVA_WISP`. Change its URL to your Wisp address, keeping the quotes, `wss://`, and `/wisp/`:
+In the Explorer, open `nova/public/config.js`. Find the line containing `window.NOVA_WISP` and set it to your real Wisp WebSocket address. Keep the quotation marks, `wss://`, and `/wisp/`:
 
 ```js
 window.NOVA_WISP = "wss://YOUR-WISP-APP-NAME.fly.dev/wisp/";
 ```
 
-Replace `YOUR-WISP-APP-NAME` with the Wisp app name you created in step 3. Save `config.js`.
+Save the file.
 
-### Create the second Fly app
+### Create the Nova app
 
-Check that your terminal is in the `nova` folder, then run:
+In the terminal, run:
 
 ```sh
-fly launch --no-deploy
+cd /workspaces/nova
+flyctl launch --no-deploy
 ```
 
-This time create a **different Fly app** for the website. For example, enter `my-nova-site` as the app name. If it is taken, choose another unique name. Choose your account and a nearby region, write down the app name and region, and answer **No** if asked to deploy now. Do not create a database or custom domain during launch for this guide.
+This is the **second, separate Fly app**. Choose a different unique app name, such as `my-nova-site`, and write it down. Choose your account and a nearby region. Choose **No** if asked to deploy now; do not add a database or custom domain during launch.
 
-You now have two Fly apps:
+Open `nova/fly.toml` in the Explorer. Check that the app name is your Nova name and the HTTP service uses port `8080`. It should stay running: check `auto_stop_machines = "off"` and `min_machines_running = 1`. Save any changes.
 
-1. The Wisp app, created while the terminal was in `nova-wisp-test`.
-2. The Nova app, created while the terminal was in `nova`.
+At this point the two app names are:
 
-Open the `fly.toml` inside the `nova` folder. Check that its `app` is your Nova app name and its service uses internal port `8080`. Ensure the HTTP service has `auto_stop_machines = "off"` and `min_machines_running = 1`, as in the Nova-Wisp settings above. Save changes.
+- **Nova-Wisp:** `YOUR-WISP-APP-NAME`
+- **Nova:** `YOUR-NOVA-APP-NAME`
 
-## 5. Set Nova's private settings (secrets)
+Keep track of which is which. Commands run in `nova-wisp-test` affect Wisp; commands run in `nova` affect Nova.
 
-These settings belong on the **Nova Fly app**, not the Wisp app. The commands in this section must be run with the terminal in the `nova` folder. Fly knows which app to update from the `fly.toml` in that folder.
+## 5. Set Nova's private settings
 
-Some Nova features require accounts or configuration outside Fly. If you only want to test the basic deployment, you may deploy first and come back to configure sign-in/database features; however, Nova may show an error or disable features until required settings are provided. Do not invent values for settings you do not understand.
+Run these settings on the **Nova app**, not Wisp. The terminal must be inside `/workspaces/nova`; the `fly.toml` there tells Fly which app to update.
 
-### Values to prepare
+Some values require setting up Google Cloud or Supabase first. Do not guess missing values. If you are only testing, you can deploy first and return to optional integrations later, but sign-in/database features may not work until configured.
 
-- `NOVA_APP_PATH`: A private random string of at least 20 letters/numbers, without spaces or punctuation. Generate it with a password manager.
-- `NOVA_SECRET`: A different private random string, at least 32 characters. Generate it with a password manager.
-- `NOVA_WORD`: The entrance word and a section from Nova's essay, in the format `word@section`.
+Prepare these values:
+
+- `NOVA_APP_PATH`: Private random string of at least 20 letters/numbers, no spaces or punctuation.
+- `NOVA_SECRET`: Different private random string of at least 32 characters.
+- `NOVA_WORD`: Entrance word and a section from Nova's essay, format `word@section`.
 - `NOVA_RETURN_WORD`: A separate private return word.
-- `NOVA_EMAILS`: Google email address(es) allowed to use the site. For multiple addresses, separate with commas and no spaces.
-- `NOVA_ADMINS`: Admin email address(es), normally including your own address.
-- `NOVA_APPROVE_PIN`: A private PIN for admin actions.
-- `NOVA_GOOGLE_CLIENT_ID`: Google OAuth client ID, if using Google sign-in.
-- `NOVA_DB_URL`, `NOVA_DB_ANON`, `NOVA_DB_KEY`: Supabase settings, if using Nova's database features.
+- `NOVA_EMAILS`: Google email address(es) allowed to use the site. Separate multiple emails with commas and no spaces.
+- `NOVA_ADMINS`: Admin email address(es), usually including your own.
+- `NOVA_APPROVE_PIN`: Private PIN for admin actions.
+- `NOVA_GOOGLE_CLIENT_ID`: Google OAuth client ID if you use Google sign-in.
+- `NOVA_DB_URL`, `NOVA_DB_ANON`, `NOVA_DB_KEY`: Supabase settings if you use database features.
 
-**Keep secret values private.** Never add them to this README, source code, GitHub, screenshots, or public chats. Enter real values only into the terminal when setting Fly secrets.
+**Keep secret values private.** Do not put them in this README, source code, GitHub, screenshots, or public chats. Enter real values only into the Codespaces terminal when setting Fly secrets.
 
-### Optional: set up Google sign-in
+### Optional: Google sign-in
 
-If you want Google sign-in, open [Google Cloud Console](https://console.cloud.google.com/) in your browser and select or create a Google Cloud project. Find **Google Auth Platform** (Google may change the menu labels), configure the consent screen as prompted, then create an OAuth client with application type **Web application**. In that client's settings, add:
+In Safari, open [Google Cloud Console](https://console.cloud.google.com/) and select/create a project. Find **Google Auth Platform** (menu wording may vary), configure the consent screen as prompted, and create an OAuth client of type **Web application**. Add:
 
-- **Authorized JavaScript origin:** `https://YOUR-NOVA-APP-NAME.fly.dev`
-- **Authorized redirect URI:** `https://YOUR-NOVA-APP-NAME.fly.dev/api/google`
+- Authorized JavaScript origin: `https://YOUR-NOVA-APP-NAME.fly.dev`
+- Authorized redirect URI: `https://YOUR-NOVA-APP-NAME.fly.dev/api/google`
 
-Use your real Nova app name, with no trailing slash on the origin. Copy the client ID (not the client secret) for the `NOVA_GOOGLE_CLIENT_ID` setting. If the Google page asks for information you cannot provide, consult Google's current setup guide rather than guessing.
+Replace the example with your Nova app name. Do not add a trailing slash to the origin. Copy the client ID (not a client secret); you will set it as `NOVA_GOOGLE_CLIENT_ID` below. If Google's screens differ, follow Google's current instructions rather than guessing.
 
-### Optional: set up Supabase database features
+### Optional: Supabase database
 
-1. Open [Supabase](https://supabase.com/dashboard) and sign in.
-2. Create or select the Supabase project intended for Nova.
-3. In the Nova project you downloaded, read the database setup instructions and inspect the SQL files in its `db/` folder. Follow those instructions in the Supabase SQL Editor; do not run SQL you have not verified is from Nova's setup.
-4. In Supabase's project settings, find the project URL and the anon/public key. Use these for `NOVA_DB_URL` and `NOVA_DB_ANON`.
-5. Set `NOVA_DB_KEY` to the private key/secret expected by Nova's database SQL setup. Do not guess this value. Never put a private/service key in a browser file.
+1. Open [Supabase](https://supabase.com/dashboard) in Safari and create/select a project for Nova.
+2. In the Nova folder in Codespaces, read its database setup instructions and inspect the SQL files in `nova/db/`.
+3. Follow Nova's instructions to install the SQL using Supabase's SQL Editor. Do not run SQL unless it is from Nova's setup and you understand it is intended for this database.
+4. In Supabase project settings, find the project URL and anon/public key for `NOVA_DB_URL` and `NOVA_DB_ANON`.
+5. Set `NOVA_DB_KEY` to the private key/secret required by Nova's SQL setup. Do not guess. Never place a private/service key in a browser file.
 
-### Enter the settings in the terminal
+### Enter the Nova secrets
 
-In the terminal inside `nova`, paste each command separately and press Enter. Replace the text inside quotes with your own value; do not include the angle-bracket examples. For example, replace `YOUR_RANDOM_PATH` with the random value you generated:
-
-```sh
-fly secrets set NOVA_APP_PATH="YOUR_RANDOM_PATH"
-fly secrets set NOVA_SECRET="YOUR_LONG_RANDOM_SECRET"
-fly secrets set NOVA_WORD="YOUR_WORD@YOUR_ESSAY_SECTION"
-fly secrets set NOVA_RETURN_WORD="YOUR_DIFFERENT_RETURN_WORD"
-fly secrets set NOVA_EMAILS="you@example.com"
-fly secrets set NOVA_ADMINS="you@example.com"
-fly secrets set NOVA_APPROVE_PIN="YOUR_PRIVATE_PIN"
-```
-
-If using Google sign-in, also run this after replacing the example:
+Return to the Codespaces terminal and make sure it is in the Nova folder:
 
 ```sh
-fly secrets set NOVA_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID"
+cd /workspaces/nova
 ```
 
-If using the database, run these after replacing the examples with the values from Supabase and Nova's database setup:
+Paste and run each command separately, replacing the example text with your own value:
 
 ```sh
-fly secrets set NOVA_DB_URL="YOUR_SUPABASE_PROJECT_URL"
-fly secrets set NOVA_DB_ANON="YOUR_SUPABASE_ANON_KEY"
-fly secrets set NOVA_DB_KEY="YOUR_NOVA_DATABASE_SECRET"
+flyctl secrets set NOVA_APP_PATH="YOUR_RANDOM_PATH"
+flyctl secrets set NOVA_SECRET="YOUR_LONG_RANDOM_SECRET"
+flyctl secrets set NOVA_WORD="YOUR_WORD@YOUR_ESSAY_SECTION"
+flyctl secrets set NOVA_RETURN_WORD="YOUR_DIFFERENT_RETURN_WORD"
+flyctl secrets set NOVA_EMAILS="you@example.com"
+flyctl secrets set NOVA_ADMINS="you@example.com"
+flyctl secrets set NOVA_APPROVE_PIN="YOUR_PRIVATE_PIN"
 ```
 
-A successful command confirms that the secret was set. If you see an error, stop and read it before pasting the next command. Never share the real values in an error report or screenshot.
+If using Google sign-in, also run:
 
-## 6. Deploy Nova and connect it to Nova-Wisp
+```sh
+flyctl secrets set NOVA_GOOGLE_CLIENT_ID="YOUR_GOOGLE_CLIENT_ID"
+```
+
+If using the database, run these with your actual Supabase/Nova values:
+
+```sh
+flyctl secrets set NOVA_DB_URL="YOUR_SUPABASE_PROJECT_URL"
+flyctl secrets set NOVA_DB_ANON="YOUR_SUPABASE_ANON_KEY"
+flyctl secrets set NOVA_DB_KEY="YOUR_NOVA_DATABASE_SECRET"
+```
+
+A successful command confirms the secret was set. If one fails, stop and read the message before continuing. Do not share real values in screenshots or help requests.
+
+## 6. Deploy Nova and connect the apps
 
 ### Deploy Nova
 
-Confirm the terminal is in the `nova` folder and run:
+Confirm the terminal is in `/workspaces/nova`, then run:
 
 ```sh
-fly deploy
+flyctl deploy
 ```
 
-When it finishes, open this address in your browser, substituting your Nova app name:
-
-```text
-https://YOUR-NOVA-APP-NAME.fly.dev
-```
-
-The root page may show Nova's essay or entrance page. The application is behind its access gate.
+After it succeeds, open `https://YOUR-NOVA-APP-NAME.fly.dev` in Safari, replacing the example name with your actual Nova app name. The root page may show Nova's essay or entrance page; the application is behind its access gate.
 
 ### Allow Nova to connect to Wisp
 
-Now switch to the Nova-Wisp folder. In the terminal, run:
+In the terminal, switch to the Wisp folder:
 
 ```sh
-cd ../nova-wisp-test
+cd /workspaces/nova-wisp-test
 ```
 
-Set the allowed website origin on the Wisp app. Use your Nova app name, include `https://`, and do not add a slash at the end:
+Set the allowed website origin. Use the Nova app name, include `https://`, and do not put a slash at the end:
 
 ```sh
-fly secrets set ALLOWED_ORIGINS="https://YOUR-NOVA-APP-NAME.fly.dev"
+flyctl secrets set ALLOWED_ORIGINS="https://YOUR-NOVA-APP-NAME.fly.dev"
 ```
 
-Then deploy Wisp again so the setting takes effect:
+Then deploy Wisp again:
 
 ```sh
-fly deploy
+flyctl deploy
 ```
 
-### Set Nova's multiplayer service address
+### Set Nova's multiplayer URL
 
-Switch back to Nova:
+Switch back to Nova and set the Wisp app's HTTPS address (not the WebSocket address; do not include `/wisp/`):
 
 ```sh
-cd ../nova
+cd /workspaces/nova
+flyctl secrets set NOVA_MP_URL="https://YOUR-WISP-APP-NAME.fly.dev"
+flyctl deploy
 ```
 
-Set the Wisp app's HTTPS address (not the WebSocket address, and do not include `/wisp/`):
+## 7. Test the deployment
+
+Open these in Safari, replacing the example names with your actual app names:
+
+- Nova health: `https://YOUR-NOVA-APP-NAME.fly.dev/api/health` — expect JSON containing `"ok":true`.
+- Wisp status: `https://YOUR-WISP-APP-NAME.fly.dev/status` — expect JSON containing `"ok":true`.
+
+Then open the Nova website, complete its entrance/sign-in process, and test the Browser feature. If enabled, test a multiplayer game. A healthy Wisp status page alone does not prove WebSockets work.
+
+## Troubleshooting
+
+### I cannot find the terminal
+
+In the Codespaces editor's top menu, choose **Terminal → New Terminal**. Make sure the browser tab is the Codespaces editor, not the ordinary GitHub file page or `github.dev`.
+
+### Codespaces says I cannot create a codespace
+
+Check your GitHub Codespaces quota, billing settings, and repository access. Codespaces use GitHub's cloud resources and may not be free for every account. If it is not available, you will need another browser-based computer/terminal or a regular computer; editing files on GitHub alone is not enough to deploy these services.
+
+### `flyctl` is not found
+
+In the Codespaces terminal, run:
 
 ```sh
-fly secrets set NOVA_MP_URL="https://YOUR-WISP-APP-NAME.fly.dev"
+export FLYCTL_INSTALL="$HOME/.fly"
+export PATH="$FLYCTL_INSTALL/bin:$PATH"
+flyctl version
 ```
 
-Then deploy Nova again:
-
-```sh
-fly deploy
-```
-
-## 7. Check that the apps work
-
-Replace the example app names with the names you chose and open these links in your browser:
-
-- Nova health check: `https://YOUR-NOVA-APP-NAME.fly.dev/api/health` — expect JSON containing `"ok":true`.
-- Wisp status check: `https://YOUR-WISP-APP-NAME.fly.dev/status` — expect JSON containing `"ok":true`.
-
-Then open `https://YOUR-NOVA-APP-NAME.fly.dev`, complete Nova's entrance/sign-in process, and test the Browser feature. If enabled, test a multiplayer game too. A successful Wisp status page alone does not prove a WebSocket connection works.
-
-## If something goes wrong
-
-### “`fly` is not recognized”
-
-The Fly command-line tool is either not installed or the terminal needs restarting. Recheck the installation instructions at <https://fly.io/docs/flyctl/install/>, close/reopen the terminal, and run `fly version`. If only `flyctl` works, use `flyctl` in place of `fly`.
+If the tool is not installed in the current codespace, repeat the installation command in Part 2.
 
 ### “Could not find fly.toml” or the wrong app was changed
 
-The terminal is probably in the wrong project folder. In VS Code, use **File → Open Folder** to open the right folder, then **Terminal → New Terminal**. Run Nova commands in `nova`; run Wisp commands in `nova-wisp-test`. Each folder has its own `fly.toml` and points to a different Fly app.
+The terminal is in the wrong project folder. Before Nova commands run `cd /workspaces/nova`; before Wisp commands run `cd /workspaces/nova-wisp-test`. Each folder has its own `fly.toml` and Fly app.
 
 ### A Fly app name is already taken
 
-Fly app names must be unique. Run `fly launch --no-deploy` again from the project folder and choose a different name. Keep the Nova and Wisp names different.
+Choose another unique name. The Nova and Wisp app names must be different.
 
-### Nova-Wisp deploys, but Nova's Browser does not connect
+### Nova's Browser does not connect to Wisp
 
-Check that `public/config.js` in the Nova folder has the correct `wss://YOUR-WISP-APP-NAME.fly.dev/wisp/` URL and that you deployed Nova after changing it. Check that Wisp's `ALLOWED_ORIGINS` is exactly `https://YOUR-NOVA-APP-NAME.fly.dev` (no trailing slash). Check both apps with `fly status` from their respective folders. For logs, run `fly logs` from the folder for the app you want to inspect.
+Check that `nova/public/config.js` has the correct `wss://YOUR-WISP-APP-NAME.fly.dev/wisp/` address, and that Nova was deployed after the change. Check Wisp's `ALLOWED_ORIGINS` exactly matches Nova's HTTPS origin with no trailing slash. Check `flyctl status` and `flyctl logs` from the matching project folder.
 
-### Google sign-in does not work
+### Google sign-in or database features do not work
 
-Check that `NOVA_GOOGLE_CLIENT_ID` was set on the Nova app, the OAuth client is a Web application, the authorized origin matches the Nova HTTPS address, and the redirect URI exactly ends in `/api/google`. After changing a Fly secret, run `fly deploy` again from `nova`.
-
-### Nova says a setting is missing, or database features do not work
-
-Run `fly secrets list` from the `nova` folder to see secret names (not their values). Check that you completed the matching Google/Supabase setup and set the required values on the Nova app. For app logs, run `fly logs` in the corresponding project folder. Do not paste secret values into a public help request.
+Check that the related secrets were set on the Nova app (from `/workspaces/nova`), and that Google/Supabase setup was completed. `flyctl secrets list` shows secret names, not values. After changing a secret or Nova configuration, deploy Nova again.
 
 ## Later updates
 
-When you change a project, open its folder in VS Code and choose **Terminal → New Terminal**, then run:
+Keep using the Codespace in your browser. Open a terminal in the matching folder and run:
 
 ```sh
-fly deploy
+cd /workspaces/nova
+flyctl deploy
 ```
 
-Run it in `nova` to update Nova, or in `nova-wisp-test` to update Nova-Wisp.
+That updates Nova. To update Nova-Wisp instead, run:
+
+```sh
+cd /workspaces/nova-wisp-test
+flyctl deploy
+```
+
+Codespaces can stop after being idle. Reopen the codespace from the repository's **Code → Codespaces** menu when you want to continue. If you create a new codespace, you may need to reinstall `flyctl` and clone Nova again.
